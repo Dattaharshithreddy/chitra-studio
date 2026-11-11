@@ -33,3 +33,18 @@ pip install numpy scipy pillow     # needs ffmpeg and a Chromium (Playwright) fo
 - **Phones may not play GIFs.** Always deliver MP4 too.
 
 Character art is not committed (public repo). Put the image next to the config locally.
+
+## Scenes and episodes (`scene.py`)
+This puts rigged characters into a background, moves them on a timeline, adds a camera and sound, and renders a 9:16 MP4.
+```bash
+cd scene_test && python3 bg.py && python3 ../scene.py mango.json     # example: mango falls, he cheers (10 s)
+```
+`scene.json` contains:
+- `background`: an image (1080×1920). `bg.py` shows how to draw one in code, with Telugu signs via Noto Sans Telugu (`npm i @fontsource/noto-sans-telugu`; that font has no `-` or `!`, so draw them separately).
+- `actors[]`: `x`, `y` (feet position) and `scale`, plus `segments` [{from, to, riv, anim, seconds}] that switch pose drawings over time (e.g. wave → cheer). `squash` (−0.1 = squashed) and `lift` (jump height in px) are keyframes, so a pose swap hides on a squash frame.
+- `props[]`: images with `x`, `y`, `rot`, `scale` keyframes (e.g. the falling mango).
+- `camera`: `zoom`, `x`, `y` keyframes (push-ins and punch-ins).
+- `sfx[]`: built-in synthesized `thump`, `boing`, `pop`, `whoosh`, plus `"ambience": "birds"`.
+- Keyframes are `[t_seconds, value, easing]`, with easing `linear | in | out | inout | hold`.
+
+Clips are rendered once to transparent APNG frames (cached in `.cache/`). A whole 10 s scene renders in about 30 s.

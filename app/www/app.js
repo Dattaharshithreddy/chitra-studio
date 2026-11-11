@@ -138,6 +138,7 @@ function go(view) {
   $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
   $$('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.go === view));
   if (view === 'gallery') refreshGallery();
+  if (view === 'chars') { CH.current ? openChar(CH.current.id) : loadChars(); }
   window.scrollTo(0, 0);
 }
 document.addEventListener('click', (e) => { const g = e.target.closest('[data-go]'); if (g) go(g.dataset.go); });
@@ -334,6 +335,7 @@ function emit(job) {
   if ($('#view-gallery').classList.contains('active')) renderGallery();
   bumpRunning();
   if (job.status === 'done' && job.source === 'claude') toast('🤖 Claude made something new');
+  if (job.kind === 'character' && job.status !== 'running' && CH.current && job.character === CH.current.id) openChar(CH.current.id);
 }
 async function refreshGallery() {
   try { JOBS = await B().jobs(); renderGallery(); bumpRunning(); } catch (e) { $('#galEmpty').textContent = 'Can’t reach the studio: ' + e.message; $('#galEmpty').hidden = false; }
@@ -397,6 +399,49 @@ $('#vSave').onclick = async () => {
   } catch (e) { toast('Save failed — try Share. ' + (e.message || '')); }
 };
 
+// ================= CHARACTERS =================
+const CH = { refs: {}, current: null, motion: null, actions: {} };
+async function loadChars() {
+  if (settings.mode !== 'hub') { $('#charGrid').innerHTML = '<p class="hint">Characters need Hub mode (Settings).</p>'; return; }
+  try {
+    const list = await Hub.req('/api/characters');
+    $('#charGrid').innerHTML = list.map(c => `<div class="tile char" data-cid="${c.id}">${c.main ? `<img src="${c.main}">` : ''}<span class="badge">${c.status}</span><div class="cap">${c.name} · ${c.assets} assets</div></div>`).join('') || '<p class="hint">No characters yet.</p>';
+    if (!Object.keys(CH.actions).length) {
+      CH.actions = await Hub.req('/api/character-actions');
+      $('#cdAction').innerHTML = Object.keys(CH.actions).map(a => `<option value="${a}">${pretty(a)}</option>`).join('');
+    }
+  } catch (e) { $('#charGrid').innerHTML = `<p class="hint">${e.message}</p>`; }
+}
+$('#charGrid').onclick = (e) => { const t = e.target.closest('[data-cid]'); if (t) openChar(t.dataset.cid); };
+$('#charBack').onclick = () => { $('#charDetail').hidden = true; $('#charList').hidden = false; CH.current = null; loadChars(); };
+async function openChar(id) {
+  const c = await Hub.req('/api/characters/' + id); CH.current = c;
+  $('#charList').hidden = true; $('#charDetail').hidden = false;
+  $('#cdName').textContent = c.name; $('#cdDesc').textContent = c.description;
+  $('#cdSheets').innerHTML = [c.main, ...Object.values(c.sheets || {})].filter(Boolean).map(u => `<img src="${u}">`).join('') || '<p class="hint">Designing… (pull back in a minute)</p>';
+  $('#cdAssets').innerHTML = (c.assets || []).filter(a => a.type !== 'sheet').map(a => {
+    const thumb = a.gif_url || a.url || a.start || (a.parts || [])[0];
+    const links = [a.video && `<a href="${a.video}" target="_blank">video</a>`, a.sheet_url && `<a href="${a.sheet_url}" target="_blank">sprite sheet</a>`,
+      a.frames_zip_url && `<a href="${a.frames_zip_url}" target="_blank">frames.zip</a>`, a.url && a.type !== 'parts' && `<a href="${a.url}" target="_blank">png</a>`,
+      ...(a.parts || []).map((p, i) => `<a href="${p}" target="_blank">layer ${i + 1}</a>`)].filter(Boolean).join('');
+    return `<div class="asset">${thumb ? `<img src="${thumb}">` : ''}<div><b>${a.type}</b> · ${a.label}${a.loop ? ' · loop' : ''}<br>${links}</div></div>`;
+  }).join('') || '<p class="hint">No poses or animations yet.</p>';
+}
+const ncRefSlots = () => { const box = $('#ncRefs'); box.innerHTML = ''; for (let i = 0; i < 3; i++) { const s = document.createElement('div'); s.className = 'slot'; s.innerHTML = `<span>＋ ${i ? 'Extra ref' : 'Approved design (optional)'}</span>`;
+  s.onclick = () => fillSlot(s, 'image/*', u => { if (u) CH.refs[i] = u; else delete CH.refs[i]; }); s.addEventListener('cleared', () => delete CH.refs[i]); box.appendChild(s); } };
+$('#ncGo').onclick = async () => {
+  try {
+    const r = await Hub.req('/api/characters', { method: 'POST', body: JSON.stringify({ name: $('#ncName').value.trim(), description: $('#ncDesc').value.trim(),
+      style: $('#ncStyle').value.trim() || undefined, reference_images: Object.values(CH.refs) }) });
+    toast('Designing — sheets arrive in a minute or two'); CH.refs = {}; ncRefSlots(); $('#newChar').open = false; loadChars(); openChar(r.character);
+  } catch (e) { toast(e.message, 4000); }
+};
+const charTask = async (path, body, msg) => { try { await Hub.req(`/api/characters/${CH.current.id}/${path}`, { method: 'POST', body: JSON.stringify(body) }); toast(msg); bumpRunning(); } catch (e) { toast(e.message, 4000); } };
+$('#cdPoseGo').onclick = () => { const pose = $('#cdPose').value.trim(); if (!pose) return toast('Describe the pose'); charTask('pose', { pose, background: $('#cdPoseBg').value }, 'Posing…'); };
+$('#cdAnimGo').onclick = () => charTask('animate', { action: $('#cdAction').value, custom_motion: $('#cdCustom').value.trim() || undefined, motion_video: CH.motion || undefined, background: $('#cdAnimBg').value }, 'Animating — a few minutes');
+$('#cdParts').onclick = () => charTask('parts', {}, 'Splitting into layers…');
+{ const s = $('#cdMotionSlot'); s.onclick = () => fillSlot(s, 'video/*', u => CH.motion = u); s.addEventListener('cleared', () => CH.motion = null); }
+
 // ================= SETTINGS =================
 function renderSettings() {
   $$('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.mode === settings.mode));
@@ -436,7 +481,7 @@ async function connect(verbose) {
   chips($('#styleChips'), Object.keys(STYLES).map(k => [k, k === 'none' ? 'None' : pretty(k)]), 'none', v => C.style = v);
   chips($('#createCamChips'), Object.keys(CAMERA_MOVES).map(k => [k, `${CAM_ICONS[k] || ''} ${k === 'none' ? 'Auto' : pretty(k)}`]), 'none', v => C.camera = v);
   chips($('#galFilters'), FILTERS, 'all', v => { FILTER = v; renderGallery(); });
-  setMode(C.mode); initCinema(); updCinemaModel(); initStory(); renderSettings();
+  setMode(C.mode); ncRefSlots(); initCinema(); updCinemaModel(); initStory(); renderSettings();
   const ok = (settings.mode === 'hub' ? settings.hubUrl && settings.token : settings.muapiKey) && await connect(false);
   if (!ok) go('settings');
   document.addEventListener('visibilitychange', () => { if (!document.hidden && $('#connBadge').classList.contains('ok')) { B().listen(emit); refreshGallery(); } });

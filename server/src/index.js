@@ -7,6 +7,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
 import * as E from './engine.js';
+import * as K from './characters.js';
 import { CAMERA_MOVES, STYLES, LENSES, CINE_CAMERAS } from '../../shared/presets.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -27,6 +28,9 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
+
+app.use((req, res, next) => { const proto = req.headers['x-forwarded-proto'] || req.protocol; E.setPublicBase(`${proto}://${req.headers['x-forwarded-host'] || req.headers.host}`); next(); });
+app.use('/files', express.static(K.FILES_DIR, { maxAge: '7d' }));
 
 const safeEq = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 function auth(req, res, next) {
@@ -52,6 +56,15 @@ app.post('/api/variations', auth, wrap(async req => (await E.createVariations({ 
 app.post('/api/storyboard', auth, wrap(async req => E.summarize(await E.createStoryboard({ ...req.body, source: 'app' }))));
 app.post('/api/upload', auth, express.raw({ type: '*/*', limit: '200mb' }), wrap(async req =>
   ({ url: await E.uploadBuffer(req.body, req.query.name || 'upload', req.headers['content-type']) })));
+app.get('/api/characters', auth, wrap(() => K.listCharacters()));
+app.get('/api/characters/:id', auth, wrap(req => K.getCharacter(req.params.id)));
+app.delete('/api/characters/:id', auth, wrap(req => ({ ok: K.deleteCharacter(req.params.id) })));
+app.get('/api/character-actions', auth, wrap(() => K.ACTIONS));
+app.post('/api/characters', auth, wrap(req => K.createCharacter({ ...req.body, source: 'app' })));
+app.post('/api/characters/:id/pose', auth, wrap(req => K.poseCharacter({ ...req.body, character: req.params.id, source: 'app' })));
+app.post('/api/characters/:id/animate', auth, wrap(req => K.animateCharacter({ ...req.body, character: req.params.id, source: 'app' })));
+app.post('/api/characters/:id/parts', auth, wrap(req => K.exportParts({ ...req.body, character: req.params.id, source: 'app' })));
+app.post('/api/export-frames', auth, wrap(req => K.exportFrames(req.body)));
 // Live updates for the app gallery (Server-Sent Events).
 app.get('/api/events', auth, (req, res) => {
   res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
@@ -63,7 +76,7 @@ app.get('/api/events', auth, (req, res) => {
 
 // ---------- MCP (used by Claude) ----------
 const fmt = (o) => ({ content: [{ type: 'text', text: JSON.stringify(o, null, 2) }] });
-const jobView = (j) => j && ({ id: j.id, status: j.status, model: j.modelName || j.model, kind: j.kind, title: j.title,
+const jobView = (j) => j && ({ result: j.result, character: j.character, id: j.id, status: j.status, model: j.modelName || j.model, kind: j.kind, title: j.title,
   prompt: j.prompt, outputs: j.outputs, error: j.error, shots: j.shots, created: new Date(j.created).toISOString() });
 const mediaShape = {
   images: z.array(z.string().url()).optional().describe('Input image URLs (for edit, image-to-video, lipsync, motion)'),
@@ -151,6 +164,54 @@ function buildMcp() {
     title: 'Favorite a generation', description: 'Star/unstar a job so it shows under Favorites in the app.',
     inputSchema: { id: z.string(), favorite: z.boolean() },
   }, async ({ id, favorite }) => fmt(jobView(E.updateJob(id, { favorite }))));
+
+  // ----- Character Kit -----
+  s.registerTool('create_character', {
+    title: 'Create a reusable 2D character',
+    description: 'Design a named, persistent 2D character: main design (or your reference images) plus turnaround, expression, hand/paw and action-pose sheets, all on-model. Runs in the background — poll get_job. Afterwards use pose_character / animate_character with the name.',
+    inputSchema: { name: z.string(), description: z.string().describe('Species/body, colors, outfit, distinguishing marks, personality'),
+      style: z.string().optional().describe('Art style for the whole show, e.g. "Indian TV kids cartoon, bold outlines, flat colors"'),
+      reference_images: z.array(z.string().url()).optional().describe('Approved design images; the first becomes the master reference'),
+      sheets: z.array(z.enum(['turnaround', 'expressions', 'hands', 'action_poses'])).optional() },
+  }, async (a) => fmt(await K.createCharacter({ ...a, source: 'claude' })));
+
+  s.registerTool('list_characters', { title: 'List characters', description: 'Saved characters with their master image.', inputSchema: {} },
+    async () => fmt(K.listCharacters()));
+
+  s.registerTool('get_character', {
+    title: 'Get character', description: 'Full character record: master image, model sheets, and every saved pose, animation (video, sprite sheet, transparent frames zip) and rig-parts asset.',
+    inputSchema: { name: z.string() },
+  }, async ({ name }) => fmt(K.getCharacter(name)));
+
+  s.registerTool('list_character_actions', { title: 'List animation actions', description: 'Built-in action presets for animate_character (walk_cycle, run_cycle, jump, drink, throw, talk…).', inputSchema: {} },
+    async () => fmt(Object.fromEntries(Object.entries(K.ACTIONS).map(([k, v]) => [k, v.motion]))));
+
+  s.registerTool('pose_character', {
+    title: 'Pose a character', description: 'Draw a saved character on-model in any pose/expression, optionally holding a prop. background: transparent (cut-out PNG), white, green, magenta, or a scene description.',
+    inputSchema: { name: z.string(), pose: z.string(), expression: z.string().optional(), props: z.string().optional(),
+      background: z.string().optional(), aspect_ratio: z.string().optional() },
+  }, async (a) => fmt(await K.poseCharacter({ ...a, character: a.name, source: 'claude' })));
+
+  s.registerTool('animate_character', {
+    title: 'Animate a character',
+    description: 'Animate a saved character: preset action (see list_character_actions) or custom_motion text; or copy movement from motion_video. Cycles loop seamlessly (start frame = end frame). On green/magenta background it auto-exports transparent PNG frames, a sprite sheet and a GIF for a 2D engine. Background job — poll get_job.',
+    inputSchema: { name: z.string(), action: z.string().optional(), custom_motion: z.string().optional(),
+      start_image: z.string().url().optional().describe('Use an existing pose (e.g. from pose_character) as the first frame'),
+      motion_video: z.string().url().optional().describe('Reference video whose movement should be copied'),
+      loop: z.boolean().optional(), background: z.string().optional().describe('green (default, keyed to transparent), magenta, white, or a scene'),
+      aspect_ratio: z.string().optional(), duration: z.number().int().optional(), export_fps: z.number().int().optional(), model: z.string().optional() },
+  }, async (a) => fmt(await K.animateCharacter({ ...a, character: a.name, source: 'claude' })));
+
+  s.registerTool('export_character_parts', {
+    title: 'Export rig parts', description: 'Split a character (rig pose, or a given image) into separate transparent body-part layers for cut-out rigging (Moho/Spine/Blender/your engine).',
+    inputSchema: { name: z.string(), image_url: z.string().url().optional() },
+  }, async (a) => fmt(await K.exportParts({ ...a, character: a.name, source: 'claude' })));
+
+  s.registerTool('export_frames', {
+    title: 'Video → frames / sprite sheet', description: 'Turn any video URL into a PNG sequence zip, sprite sheet, GIF and JSON metadata. chroma green/magenta keys the background to transparency.',
+    inputSchema: { video_url: z.string().url(), fps: z.number().int().max(30).optional(), width: z.number().int().max(1024).optional(),
+      chroma: z.enum(['none', 'green', 'magenta']).optional(), columns: z.number().int().max(16).optional() },
+  }, async (a) => fmt(await K.exportFrames(a)));
 
   return s;
 }

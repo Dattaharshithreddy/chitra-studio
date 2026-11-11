@@ -209,3 +209,15 @@ export function summarize(j) {
   const { payload, ...rest } = j;
   return rest;
 }
+
+// ---------- generic multi-step tasks (character pipelines) ----------
+export function createTaskJob({ title, kind = 'task', cat = 'task', prompt = '', source = 'app', character }) {
+  const job = { id: 't_' + crypto.randomBytes(6).toString('hex'), title, kind, cat, prompt, status: 'running', outputs: [], source, character,
+    created: Date.now(), updated: Date.now() };
+  jobs.unshift(job); touch(job); return job;
+}
+export function finishTask(id, patch) { const j = getJob(id); if (!j) return; Object.assign(j, patch); touch(j); }
+
+let PUBLIC_BASE = process.env.PUBLIC_URL || '';
+export function setPublicBase(url) { if (!process.env.PUBLIC_URL && url) PUBLIC_BASE = url.replace(/\/+$/, ''); }
+export const publicBase = () => PUBLIC_BASE;

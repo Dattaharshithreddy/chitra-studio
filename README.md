@@ -20,7 +20,17 @@ An Android AI image & video studio in the spirit of Higgsfield. It runs 598 mode
 
 Direct mode (in Settings) skips the hub and calls Muapi from the phone with your own key. History then stays on the phone, and Claude can't see it.
 
+## Character Kit (2D characters for Claude)
+Design a character once and every later call stays on-model:
+- `create_character`: master design (or your approved images) plus turnaround, expression, hand/paw and action-pose sheets.
+- `pose_character`: any pose, expression or prop, as a transparent PNG or on a background.
+- `animate_character`: 22 preset actions (walk/run cycles, jump, drink, throw, talk…), custom movement, or motion copied from a reference video. Cycles loop seamlessly (the start frame is reused as the end frame). The default green screen is keyed out into **transparent PNG frames, a sprite sheet (+ JSON) and a GIF**, ready for a 2D engine.
+- `export_character_parts`: splits the character into body-part layers for cut-out rigging.
+- `export_frames`: turns any video into a frames zip and sprite sheet.
+
+The hub needs `ffmpeg` and `zip` for exports (both included in the Docker image).
+
 ## MCP tools
-`list_models`, `get_presets`, `generate`, `generate_variations`, `create_storyboard`, `get_job`, `list_jobs`, `upload_from_url`, `favorite_job`.
+`create_character`, `list_characters`, `get_character`, `list_character_actions`, `pose_character`, `animate_character`, `export_character_parts`, `export_frames`, `list_models`, `get_presets`, `generate`, `generate_variations`, `create_storyboard`, `get_job`, `list_jobs`, `upload_from_url`, `favorite_job`.
 
 Not affiliated with Higgsfield. The keystore in `app/android/keystore` is only for personal sideloading. Replace it (and set `KEYSTORE_PASSWORD`) before any Play Store release.

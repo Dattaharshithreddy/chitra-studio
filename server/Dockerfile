@@ -1,4 +1,5 @@
 FROM node:22-alpine
+RUN apk add --no-cache ffmpeg zip
 WORKDIR /srv
 COPY shared ./shared
 COPY app/www ./app/www

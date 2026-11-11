@@ -71,6 +71,38 @@
       <button class="primary big" id="sbGo">Build storyboard</button>
     </section>
 
+    <!-- CHARACTERS -->
+    <section id="view-chars" class="view">
+      <div id="charList">
+        <h2>Characters</h2>
+        <p class="sub">Design once, then pose and animate on-model. Claude uses the same characters.</p>
+        <div class="grid" id="charGrid"></div>
+        <details class="card" id="newChar"><summary><b>＋ New character</b></summary>
+          <input id="ncName" placeholder="Name (e.g. Kittu)" />
+          <textarea id="ncDesc" rows="3" placeholder="Who are they? Body, colours, outfit, marks, personality…"></textarea>
+          <input id="ncStyle" placeholder="Show style (optional) e.g. Indian TV kids cartoon, bold outlines" />
+          <div class="media-slots" id="ncRefs"></div>
+          <button class="primary" id="ncGo">Design character</button>
+        </details>
+      </div>
+      <div id="charDetail" hidden>
+        <button class="ghost sm" id="charBack">← All characters</button>
+        <h2 id="cdName"></h2><p class="sub" id="cdDesc"></p>
+        <div class="strip" id="cdSheets"></div>
+        <h4>Pose</h4>
+        <input id="cdPose" placeholder="e.g. holding a cup of milk with both paws" />
+        <div class="row"><select id="cdPoseBg"><option value="transparent">Transparent</option><option value="white">White</option><option value="green">Green screen</option></select>
+          <button class="primary" id="cdPoseGo">Pose</button></div>
+        <h4>Animate</h4>
+        <div class="row"><select id="cdAction"></select><select id="cdAnimBg"><option value="green">Transparent export</option><option value="white">White</option></select></div>
+        <input id="cdCustom" placeholder="…or describe a custom movement" />
+        <div class="media-slots"><div class="slot" id="cdMotionSlot"><span>＋ Copy motion from video</span></div></div>
+        <button class="primary big" id="cdAnimGo">Animate</button>
+        <button class="ghost" id="cdParts">✂ Export rig parts (layers)</button>
+        <h4>Assets</h4><div id="cdAssets"></div>
+      </div>
+    </section>
+
     <!-- GALLERY -->
     <section id="view-gallery" class="view">
       <div class="chips scroll" id="galFilters"></div>
@@ -108,6 +140,7 @@
     <button data-go="create" class="active"><b>✦</b>Create</button>
     <button data-go="cinema"><b>🎥</b>Cinema</button>
     <button data-go="story"><b>🎞</b>Story</button>
+    <button data-go="chars"><b>☺</b>Chars</button>
     <button data-go="gallery"><b>▦</b>Gallery<i id="runBadge" hidden></i></button>
     <button data-go="settings"><b>⚙</b>Settings</button>
   </nav>

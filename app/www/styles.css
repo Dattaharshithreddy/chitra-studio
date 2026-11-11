@@ -88,3 +88,10 @@ button.ghost.sm{width:auto;padding:6px 10px;font-size:12px;margin:0}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;margin:10px 0;word-break:break-all}
 .mono{font-family:ui-monospace,monospace;font-size:12px}
 .toast{position:fixed;left:50%;bottom:calc(86px + var(--safe-bot));transform:translateX(-50%);background:#1d1d2b;border:1px solid var(--line);padding:10px 16px;border-radius:99px;font-size:13px;z-index:60;max-width:90vw}
+
+.strip{display:flex;gap:8px;overflow-x:auto;margin:8px 0}.strip img{height:150px;border-radius:12px;border:1px solid var(--line);background:#fff}
+.asset{display:flex;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;margin-bottom:8px}
+.asset img{width:72px;height:72px;object-fit:contain;border-radius:8px;background:repeating-conic-gradient(#2a2a3a 0 25%,#1a1a26 0 50%) 0 0/16px 16px}
+.asset div{flex:1;font-size:13px}.asset a{color:var(--acc);font-size:12px;margin-right:10px}
+.row select{flex:1}details summary{cursor:pointer;margin-bottom:8px}
+.tile.char img{background:#fff;object-fit:contain}

@@ -1,0 +1,15 @@
+{
+  "name": "cheer", "image": "guy_poses.png", "crop_x": [760, 1536],
+  "feet": [320, 985], "neck": [325, 284], "skin_px": [330, 120], "head_box": [215, 0, 440, 330],
+  "pockets": [[240, 228, 300, 300], [396, 226, 428, 264]],
+  "eyes": [[296, 150, 336, 178], [350, 150, 390, 172]],
+  "arms": {
+    "left":  {"region": [70, 0, 268, 300], "seed": [170, 150], "cut": [[215, 190], 0.57, "left"], "sh": [248, 292], "el": [186, 175], "hand": [140, 22]},
+    "right": {"region": [400, 0, 600, 300], "seed": [478, 150], "cut": [[435, 190], -0.57, "right"], "sh": [412, 292], "el": [478, 172], "hand": [532, 22]}
+  },
+  "anims": [{"name": "cheer", "dur": 72, "blinks": [40], "channels": {
+    "root": [[0, 0], [9, -0.035, "ease-out"], [24, 0.03, "ease-out"], [36, 0], [45, -0.035, "ease-out"], [60, 0.03, "ease-out"], [72, 0]],
+    "head": {"cycles": 2, "amp": 2.5},
+    "lo_left": {"cycles": 2, "amp": 14}, "lo_right": {"cycles": 2, "amp": 14, "phase": 2},
+    "up_left": {"cycles": 2, "amp": 4, "phase": 1}, "up_right": {"cycles": 2, "amp": 4, "phase": 3}}}]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "wave", "image": "guy_poses.png", "crop_x": [0, 760],
+  "feet": [415, 985], "neck": [430, 284], "skin_px": [415, 118], "head_box": [300, 0, 520, 330],
+  "eyes": [[383, 148, 422, 176], [440, 148, 480, 172]],
+  "arms": {
+    "raised": {"region": [150, 0, 320, 320], "seed": [230, 150], "sh": [296, 292], "el": [246, 172], "hand": [218, 28]},
+    "down":   {"region": [505, 430, 600, 700], "seed": [545, 520], "sh": [522, 420], "el": [548, 560], "hand": [560, 686]}
+  },
+  "anims": [{"name": "wave", "dur": 96, "blinks": [60], "channels": {
+    "lo_raised": {"cycles": 2, "amp": 17}, "up_raised": {"cycles": 2, "amp": 3, "phase": 3},
+    "head": {"cycles": 1, "amp": 2.2}, "root": {"cycles": 2, "amp": 0.006, "phase": 1},
+    "up_down": {"cycles": 1, "amp": 1.5, "phase": 2}, "lo_down": {"cycles": 1, "amp": 2.5, "phase": 3}}}]
+}

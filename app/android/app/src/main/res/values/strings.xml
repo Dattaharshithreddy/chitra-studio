@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Chitra Studio</string>
+    <string name="title_activity_main">Chitra Studio</string>
+    <string name="package_name">com.harshith.chitrastudio</string>
+    <string name="custom_url_scheme">com.harshith.chitrastudio</string>
+</resources>

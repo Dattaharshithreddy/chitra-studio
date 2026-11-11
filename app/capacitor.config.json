@@ -1,0 +1,7 @@
+{
+  "appId": "com.harshith.chitrastudio",
+  "appName": "Chitra Studio",
+  "webDir": "www",
+  "android": { "allowMixedContent": true, "backgroundColor": "#07070b" },
+  "plugins": { "CapacitorHttp": { "enabled": false } }
+}

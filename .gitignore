@@ -1,0 +1,5 @@
+node_modules/
+server/data/
+app/www/presets.js
+app/www/catalog.json
+*.apk

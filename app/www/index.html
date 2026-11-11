@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#07070b" />
+  <title>Chitra Studio</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><span class="logo">◐</span> Chitra <em>Studio</em></div>
+    <button class="conn" id="connBadge" data-go="settings">offline</button>
+  </header>
+
+  <main>
+    <!-- CREATE -->
+    <section id="view-create" class="view active">
+      <div class="chips scroll" id="modeChips"></div>
+      <button class="model-pick" id="modelPick"><span id="modelName">Pick a model</span><small id="modelMeta"></small><i>▾</i></button>
+      <div id="mediaSlots" class="media-slots"></div>
+      <div class="prompt-box">
+        <textarea id="prompt" rows="4" placeholder="Describe what you want to see…"></textarea>
+        <div class="prompt-tools">
+          <button class="ghost sm" id="enhanceBtn" title="Add cinematic detail">✨ Enhance</button>
+          <button class="ghost sm" id="randomBtn">🎲 Idea</button>
+        </div>
+      </div>
+      <h4>Style</h4>
+      <div class="chips scroll" id="styleChips"></div>
+      <div id="cameraBlock" hidden>
+        <h4>Camera move</h4>
+        <div class="chips scroll" id="createCamChips"></div>
+      </div>
+      <div id="modelOptions" class="options"></div>
+      <div class="row gen-row">
+        <label class="count">×<select id="varCount"><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+        <button class="primary big" id="generateBtn">Generate</button>
+      </div>
+      <p class="hint" id="createHint"></p>
+    </section>
+
+    <!-- CINEMA -->
+    <section id="view-cinema" class="view">
+      <h2>Cinema Studio</h2>
+      <p class="sub">Director-level camera control for any video model.</p>
+      <div class="media-slots"><div class="slot" id="cinemaSlot" data-accept="image/*"><span>＋ Start frame (optional)</span></div></div>
+      <textarea id="cinemaPrompt" rows="3" placeholder="Scene: a rider crosses a desert at golden hour…"></textarea>
+      <h4>Camera move</h4>
+      <div class="cam-grid" id="camGrid"></div>
+      <h4>Camera body</h4><div class="chips scroll" id="cineCamChips"></div>
+      <h4>Lens</h4><div class="chips scroll" id="lensChips"></div>
+      <h4>Look</h4><div class="chips scroll" id="cinemaStyleChips"></div>
+      <h4>Aspect</h4><div class="chips" id="cinemaAspect"></div>
+      <button class="model-pick" id="cinemaModelPick"><span id="cinemaModelName">Default video model</span><i>▾</i></button>
+      <button class="primary big" id="cinemaGo">Roll camera 🎬</button>
+    </section>
+
+    <!-- STORY -->
+    <section id="view-story" class="view">
+      <h2>Storyboard</h2>
+      <p class="sub">One character, many shots — keyframed and animated in one go.</p>
+      <input id="sbTitle" placeholder="Title (e.g. The Kite Boy)" />
+      <textarea id="sbChar" rows="2" placeholder="Main character: a 10-year-old boy, red scarf, curly hair…"></textarea>
+      <div class="media-slots"><div class="slot" id="sbCharSlot" data-accept="image/*"><span>＋ Character reference</span></div></div>
+      <h4>Look</h4><div class="chips scroll" id="sbStyleChips"></div>
+      <h4>Aspect</h4><div class="chips" id="sbAspect"></div>
+      <h4>Shots</h4>
+      <div id="shots"></div>
+      <button class="ghost" id="addShot">＋ Add shot</button>
+      <button class="primary big" id="sbGo">Build storyboard</button>
+    </section>
+
+    <!-- GALLERY -->
+    <section id="view-gallery" class="view">
+      <div class="chips scroll" id="galFilters"></div>
+      <div class="grid" id="gallery"></div>
+      <p class="empty" id="galEmpty">Nothing yet. Make something!</p>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" class="view">
+      <h2>Connection</h2>
+      <div class="seg" id="modeSeg">
+        <button data-mode="hub">Hub (syncs with Claude)</button>
+        <button data-mode="direct">Direct (key on phone)</button>
+      </div>
+      <div id="hubFields">
+        <label>Hub URL<input id="hubUrl" placeholder="https://your-chitra-hub.onrender.com" autocapitalize="off" /></label>
+        <label>Studio token<input id="hubToken" type="password" autocapitalize="off" /></label>
+        <div class="card mono" id="mcpUrlCard" hidden>
+          <b>Claude connector URL</b><br /><span id="mcpUrl"></span>
+          <button class="ghost sm" id="copyMcp">Copy</button>
+        </div>
+      </div>
+      <div id="directFields" hidden>
+        <label>Muapi API key<input id="muapiKey" type="password" autocapitalize="off" /></label>
+        <p class="hint">Get one at muapi.ai. Direct mode keeps history on this phone only — Claude can't see it.</p>
+      </div>
+      <button class="primary" id="saveSettings">Save & test</button>
+      <p class="hint" id="settingsMsg"></p>
+      <h2>About</h2>
+      <p class="hint">Chitra Studio • 598 models via Muapi. Model catalog derived from the MIT-licensed Open-Generative-AI project. Not affiliated with Higgsfield.</p>
+    </section>
+  </main>
+
+  <nav class="tabs">
+    <button data-go="create" class="active"><b>✦</b>Create</button>
+    <button data-go="cinema"><b>🎥</b>Cinema</button>
+    <button data-go="story"><b>🎞</b>Story</button>
+    <button data-go="gallery"><b>▦</b>Gallery<i id="runBadge" hidden></i></button>
+    <button data-go="settings"><b>⚙</b>Settings</button>
+  </nav>
+
+  <!-- model sheet -->
+  <div class="sheet" id="modelSheet" hidden>
+    <div class="sheet-body">
+      <div class="sheet-head"><input id="modelSearch" placeholder="Search 598 models…" /><button class="ghost sm" data-close>✕</button></div>
+      <div id="modelList"></div>
+    </div>
+  </div>
+
+  <!-- viewer -->
+  <div class="viewer" id="viewer" hidden>
+    <div class="viewer-top"><button class="ghost sm" data-close>✕</button><span id="vStatus"></span><button class="ghost sm" id="vFav">☆</button></div>
+    <div class="viewer-media" id="vMedia"></div>
+    <div class="viewer-info"><p id="vPrompt"></p><small id="vMeta"></small></div>
+    <div class="viewer-actions">
+      <button id="vSave">⬇ Save</button><button id="vShare">↗ Share</button>
+      <button id="vAnimate">🎬 Animate</button><button id="vEdit">✎ Edit</button>
+      <button id="vReuse">↺ Reuse</button><button id="vDelete" class="danger">🗑</button>
+    </div>
+  </div>
+
+  <input type="file" id="filePick" hidden />
+  <div class="toast" id="toast" hidden></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

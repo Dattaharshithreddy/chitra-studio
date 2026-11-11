@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: chitra-hub
+    runtime: docker
+    dockerfilePath: server/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: MUAPI_KEY
+        sync: false
+      - key: STUDIO_TOKEN
+        generateValue: true

@@ -1,0 +1,19 @@
+{
+  "name": "chitra-studio",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "copy-shared": "cp ../shared/presets.js ../shared/catalog.json www/",
+    "sync": "npm run copy-shared && npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.6.10",
+    "@capacitor/core": "^7.6.10",
+    "@capacitor/filesystem": "^7.1.9",
+    "@capacitor/share": "^7.0.4",
+    "@capacitor/status-bar": "^7.0.6"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.6.10"
+  }
+}

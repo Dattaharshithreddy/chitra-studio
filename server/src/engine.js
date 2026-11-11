@@ -5,13 +5,11 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { buildPayload, buildPrompt, validate, DEFAULTS } from '../../shared/presets.js';
+import * as S from './store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const CATALOG = JSON.parse(fs.readFileSync(path.join(__dirname, '../../shared/catalog.json'), 'utf8'));
 const BASE = process.env.MUAPI_BASE || 'https://api.muapi.ai';
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
-const JOBS_FILE = path.join(DATA_DIR, 'jobs.json');
-fs.mkdirSync(DATA_DIR, { recursive: true });
 
 export function apiKey() {
   const k = process.env.MUAPI_KEY;
@@ -21,15 +19,8 @@ export function apiKey() {
 
 // ---------- store ----------
 let jobs = [];
-try { jobs = JSON.parse(fs.readFileSync(JOBS_FILE, 'utf8')); } catch { jobs = []; }
-let saveTimer = null;
-function save() {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    fs.writeFileSync(JOBS_FILE + '.tmp', JSON.stringify(jobs.slice(0, 2000)));
-    fs.renameSync(JOBS_FILE + '.tmp', JOBS_FILE);
-  }, 200);
-}
+export async function init() { jobs = await S.loadJSON('jobs.json', []); }
+function save() { S.saveJSON('jobs.json', jobs.slice(0, 2000)); }
 const listeners = new Set();
 export function onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 function touch(job) { job.updated = Date.now(); save(); for (const fn of listeners) fn(job); }
@@ -218,6 +209,5 @@ export function createTaskJob({ title, kind = 'task', cat = 'task', prompt = '',
 }
 export function finishTask(id, patch) { const j = getJob(id); if (!j) return; Object.assign(j, patch); touch(j); }
 
-let PUBLIC_BASE = process.env.PUBLIC_URL || '';
-export function setPublicBase(url) { if (!process.env.PUBLIC_URL && url) PUBLIC_BASE = url.replace(/\/+$/, ''); }
-export const publicBase = () => PUBLIC_BASE;
+export const setPublicBase = S.setPublicBase;
+export const publicBase = S.getPublicBase;

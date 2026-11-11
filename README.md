@@ -14,7 +14,7 @@ An Android AI image & video studio in the spirit of Higgsfield. It runs 598 mode
 ## Setup
 1. **Deploy the hub.** On Render: New → Blueprint → this repo (it uses `render.yaml`). Set `MUAPI_KEY`, then copy the generated `STUDIO_TOKEN`.
    To run it locally instead: `cd server && npm i && MUAPI_KEY=... STUDIO_TOKEN=... npm start`, plus `cloudflared tunnel --url http://localhost:8787` if you need a public URL.
-   Render's free disk is wiped on every redeploy. To keep history, add a persistent disk mounted at `/data`.
+   **Free permanent storage:** create a free Supabase project, then set `SUPABASE_URL` (Project Settings → Data API) and `SUPABASE_SECRET_KEY` (Project Settings → API Keys → secret key). The hub creates its storage buckets automatically. Characters, history and exports then survive Render's free-tier restarts. Without these settings, everything is kept on local disk and is lost on restart.
 2. **Install the APK** from Releases. In the app, open Settings, enter the Hub URL and token, then tap Save & test.
 3. **Connect Claude.** In claude.ai, go to Settings → Connectors → Add custom connector and use the URL `https://<hub>/mcp/<STUDIO_TOKEN>`. The app's Settings screen shows this URL with a Copy button.
 

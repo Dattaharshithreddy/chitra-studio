@@ -8,6 +8,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { z } from 'zod';
 import * as E from './engine.js';
 import * as K from './characters.js';
+import * as S from './store.js';
 import { CAMERA_MOVES, STYLES, LENSES, CINE_CAMERAS } from '../../shared/presets.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -44,7 +45,7 @@ const wrap = (fn) => async (req, res) => {
 
 // ---------- REST (used by the APK) ----------
 app.get('/health', (req, res) => res.json({ ok: true, name: 'chitra-hub', models: E.CATALOG.length }));
-app.get('/api/ping', auth, (req, res) => res.json({ ok: true, hasKey: !!process.env.MUAPI_KEY }));
+app.get('/api/ping', auth, (req, res) => res.json({ ok: true, hasKey: !!process.env.MUAPI_KEY, storage: S.remote ? 'supabase' : 'local' }));
 app.get('/api/models', auth, wrap(req => E.searchModels({ category: req.query.category, search: req.query.q, limit: 1000 })));
 app.get('/api/jobs', auth, wrap(req => E.listJobs({ limit: Number(req.query.limit) || 100, status: req.query.status,
   cat: req.query.cat, source: req.query.source, favorite: req.query.favorite === '1', parent: req.query.parent }).map(E.summarize)));
@@ -234,4 +235,9 @@ app.delete(['/mcp', '/mcp/:token'], mcpMethodNotAllowed);
 app.get(['/presets.js', '/catalog.json'], (req, res) => res.sendFile(path.join(__dirname, '../../shared', req.path)));
 app.use(express.static(path.join(__dirname, '../../app/www')));
 
+await S.init();
+await E.init();
+await K.init();
 app.listen(PORT, () => console.log(`Chitra Hub on :${PORT}  •  MCP: /mcp/<STUDIO_TOKEN>`));
+// Render stops free instances with SIGTERM — write pending state first.
+for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, async () => { try { await S.flushAll(); } finally { process.exit(0); } });

@@ -7,12 +7,10 @@ import crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import * as E from './engine.js';
+import * as S from './store.js';
 
 const run = promisify(execFile);
-const DATA_DIR = process.env.DATA_DIR || path.join(path.dirname(new URL(import.meta.url).pathname), '../data');
-export const FILES_DIR = path.join(DATA_DIR, 'files');
-const CHAR_FILE = path.join(DATA_DIR, 'characters.json');
-fs.mkdirSync(FILES_DIR, { recursive: true });
+export const FILES_DIR = S.FILES_DIR;
 
 export const MODELS = {
   design: process.env.CHAR_DESIGN_MODEL || 'nano-banana-pro',
@@ -65,8 +63,8 @@ const SHEETS = {
 
 // ---------- store ----------
 let chars = [];
-try { chars = JSON.parse(fs.readFileSync(CHAR_FILE, 'utf8')); } catch { chars = []; }
-const save = () => { fs.writeFileSync(CHAR_FILE + '.tmp', JSON.stringify(chars, null, 1)); fs.renameSync(CHAR_FILE + '.tmp', CHAR_FILE); };
+export async function init() { chars = await S.loadJSON('characters.json', []); }
+const save = () => S.saveJSON('characters.json', chars, 200);
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 export const listCharacters = () => chars.map(c => ({ id: c.id, name: c.name, status: c.status, main: c.main, assets: c.assets.length, updated: c.updated }));
 export function getCharacter(idOrName) {
@@ -81,10 +79,11 @@ export function deleteCharacter(id) { const c = getCharacter(id); chars = chars.
 const lock = (c) => `The exact same character as in the reference images: ${c.name}, ${c.description}. Keep identical face, head shape, colors, markings, proportions, outfit and line style. ${c.style}.`;
 const refs = (c, extra = []) => [c.main, c.sheets?.turnaround, ...(c.refs || []), ...extra].filter(Boolean).slice(0, 6);
 
-async function done(job, secs = 900) {
+// Waits for a job and copies its outputs into permanent storage (provider URLs can expire).
+async function done(job, secs = 900, prefix = 'chars') {
   const j = await E.waitFor(job.id, secs);
   if (j.status !== 'done' || !j.outputs?.length) throw new Error(j.error || `${j.modelName} returned nothing`);
-  return j.outputs;
+  return Promise.all(j.outputs.map(u => S.persistUrl(u, prefix)));
 }
 
 // Runs a multi-step task as one trackable job in the gallery/MCP.
@@ -194,7 +193,7 @@ export async function exportParts({ character, image_url, source = 'app' }) {
 // ---------- frames / sprite sheet (ffmpeg) ----------
 export async function exportFrames({ video_url, fps = 12, width = 512, chroma = 'none', columns = 6 }) {
   const id = 'x_' + crypto.randomBytes(5).toString('hex');
-  const dir = path.join(FILES_DIR, id); fs.mkdirSync(path.join(dir, 'frames'), { recursive: true });
+  const dir = path.join(FILES_DIR, 'work', id); fs.mkdirSync(path.join(dir, 'frames'), { recursive: true });
   const src = path.join(dir, 'source.mp4');
   const r = await fetch(video_url); if (!r.ok) throw new Error(`Could not download video (${r.status})`);
   fs.writeFileSync(src, Buffer.from(await r.arrayBuffer()));
@@ -211,7 +210,8 @@ export async function exportFrames({ video_url, fps = 12, width = 512, chroma = 
   await run('zip', ['-qj', path.join(dir, 'frames.zip'), ...frames.map(f => path.join(dir, 'frames', f))]);
   const meta = { fps, frame_count: frames.length, frame_width: width, columns: cols, rows, transparent: !!KEY[chroma] };
   fs.writeFileSync(path.join(dir, 'sheet.json'), JSON.stringify(meta, null, 2));
-  fs.rmSync(src);
-  const base = `${E.publicBase()}/files/${id}`;
-  return { sheet_url: `${base}/sheet.png`, frames_zip_url: `${base}/frames.zip`, gif_url: `${base}/preview.gif`, sheet_meta_url: `${base}/sheet.json`, ...meta };
+  const up = (f) => S.putFile(`exports/${id}/${f}`, fs.readFileSync(path.join(dir, f)), S.typeOf(f));
+  const [sheet_url, frames_zip_url, gif_url, sheet_meta_url] = await Promise.all(['sheet.png', 'frames.zip', 'preview.gif', 'sheet.json'].map(up));
+  if (S.remote) fs.rmSync(dir, { recursive: true, force: true }); else fs.rmSync(src);
+  return { sheet_url, frames_zip_url, gif_url, sheet_meta_url, ...meta };
 }

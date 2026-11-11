@@ -462,7 +462,7 @@ async function connect(verbose) {
     const r = await B().ping();
     badge.textContent = settings.mode === 'hub' ? '● hub' : '● direct'; badge.classList.add('ok');
     if (settings.mode === 'hub' && !r.hasKey) throw new Error('Hub is up but MUAPI_KEY is not set on it');
-    $('#settingsMsg').textContent = '✓ Connected';
+    $('#settingsMsg').textContent = '✓ Connected' + (r.storage === 'local' ? ' — ⚠ server storage is temporary (add Supabase to keep characters)' : r.storage ? ' · storage: ' + r.storage : '');
     B().listen(emit); refreshGallery();
     if (verbose) toast('Connected');
     return true;

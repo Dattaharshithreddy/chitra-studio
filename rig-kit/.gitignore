@@ -5,3 +5,7 @@ scene_test/.cache/
 scene_test/*.mp4
 scene_test/*.png
 scene_test/*.woff
+mallesh/*.png
+mallesh/*.riv
+mallesh/*.args.json
+mallesh/boxes.json
